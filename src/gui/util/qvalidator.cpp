@@ -688,11 +688,12 @@ QValidator::State QDoubleValidatorPrivate::validateWithLocale(QString &input, QL
         return QValidator::Invalid;
 
     bool ok = false;
-    double i = buff.toDouble(&ok); // returns 0.0 if !ok
-    if (i == qt_qnan())
-        return QValidator::Invalid;
-    if (!ok)
+    int endIndex = 0;
+    double i = QLocaleData::bytearrayToDouble(buff.constData(), &ok, &endIndex);
+    if (endIndex != buff.length())
         return QValidator::Intermediate;
+    if (!ok)
+        return QValidator::Invalid;
 
     if (i >= q->b && i <= q->t)
         return QValidator::Acceptable;

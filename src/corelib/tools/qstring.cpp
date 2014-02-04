@@ -7128,7 +7128,7 @@ qint64 QString::toLongLong(bool *ok, int base) const
     return toIntegral_helper<qlonglong>(constData(), size(), ok, base);
 }
 
-qlonglong QString::toIntegral_helper(const QChar *data, int len, bool *ok, int base)
+qlonglong QString::toIntegral_helper(const QChar *data, int len, bool *ok, int base, int *convertedChars)
 {
 #if defined(QT_CHECK_RANGE)
     if (base != 0 && (base < 2 || base > 36)) {
@@ -7137,7 +7137,7 @@ qlonglong QString::toIntegral_helper(const QChar *data, int len, bool *ok, int b
     }
 #endif
 
-    return QLocaleData::c()->stringToLongLong(QStringView(data, len), base, ok, QLocale::RejectGroupSeparator);
+    return QLocaleData::c()->stringToLongLong(QStringView(data, len), base, ok, convertedChars, QLocale::RejectGroupSeparator);
 }
 
 
@@ -7170,7 +7170,7 @@ quint64 QString::toULongLong(bool *ok, int base) const
     return toIntegral_helper<qulonglong>(constData(), size(), ok, base);
 }
 
-qulonglong QString::toIntegral_helper(const QChar *data, uint len, bool *ok, int base)
+qulonglong QString::toIntegral_helper(const QChar *data, uint len, bool *ok, int base, int *convertedChars)
 {
 #if defined(QT_CHECK_RANGE)
     if (base != 0 && (base < 2 || base > 36)) {
@@ -7179,8 +7179,7 @@ qulonglong QString::toIntegral_helper(const QChar *data, uint len, bool *ok, int
     }
 #endif
 
-    return QLocaleData::c()->stringToUnsLongLong(QStringView(data, len), base, ok,
-                                                 QLocale::RejectGroupSeparator);
+    return QLocaleData::c()->stringToUnsLongLong(QStringView(data, len), base, ok, convertedChars, QLocale::RejectGroupSeparator);
 }
 
 /*!
@@ -7333,6 +7332,245 @@ short QString::toShort(bool *ok, int base) const
     return toIntegral_helper<short>(constData(), size(), ok, base);
 }
 
+/*! \fn short QString::toShort(bool *ok, int base, int *convertedChars) const;
+    \overload
+    \since 5.12
+
+    Returns the byte array converted to a \c short using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number(), toUShort(), toInt(), QLocale::toShort()
+ */
+
+/*! \fn ushort QString::toUShort(bool *ok, int base, int *convertedChars) const;
+    \since 5.12
+
+    Returns the byte array converted to a \c {unsigned short} using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number(), toShort(), toInt(), QLocale::toUShort()
+ */
+
+/*! \fn int QString::toInt(bool *ok, int base, int *convertedChars) const;
+    \overload
+    \since 5.12
+
+    Returns the byte array converted to an \c int using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number(), QString::toUInt(), QLocale::toInt()
+ */
+
+/*! \fn uint QString::toUInt(bool *ok, int base, int *convertedChars) const;
+    \overload
+    \since 5.12
+
+    Returns the byte array converted to an \c int using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number(), QString::toInt(), QLocale::toUInt()
+ */
+
+/*! \fn long QString::toLong(bool *ok, int base, int *convertedChars) const;
+    \overload
+    \since 5.12
+
+    Returns the byte array converted to a \c long using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number(), QString::toInt(), QString::toULong(), QLocale::toLong()
+ */
+
+/*! \fn ulong QString::toULong(bool *ok, int base, int *convertedChars) const;
+    \overload
+    \since 5.12
+
+    Returns the byte array converted to an \c {unsigned long} using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number(), QString::toInt(), QString::toLong(), QLocale::toULong()
+ */
+
+/*! \fn qlonglong QString::toLongLong(bool *ok, int base, int *convertedChars) const;
+    \overload
+    \since 5.12
+
+    Returns the byte array converted to a \c {long long} using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number(), QString::toInt(), QString::toULongLong(), QLocale::toLongLong()
+ */
+
+/*! \fn qulonglong QString::toULongLong(bool *ok, int base, int *convertedChars) const;
+    \overload
+    \since 5.12
+
+    Returns the byte array converted to an \c {unsigned long long} using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number(), QString::toInt(), QString::toLongLong(), QLocale::toULongLong()
+ */
+
 /*!
     Returns the string converted to an \c{unsigned short} using base \a
     base, which is 10 by default and must be between 2 and 36, or 0.
@@ -7398,7 +7636,43 @@ ushort QString::toUShort(bool *ok, int base) const
 
 double QString::toDouble(bool *ok) const
 {
-    return QLocaleData::c()->stringToDouble(*this, ok, QLocale::RejectGroupSeparator);
+    return toDouble(ok, nullptr);
+}
+
+/*! \overload
+    \since 5.12
+
+    Returns the string converted to a \c double value.
+
+    Returns 0.0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.0.
+
+    This function skips leading whitespace and converts all valid numeric
+    characters, including plus/minus and the 'e' used in scientific notation,
+    stopping at the end of the string or the first non-numeric character.
+
+    The string conversion will always happen in the 'C' locale. For locale
+    dependent conversion use QLocale::toDouble()
+
+    For historical reasons, this function does not handle
+    thousands group separators. If you need to convert such numbers,
+    use QLocale::toDouble().
+
+    \sa number(), QLocale::setDefault(), QLocale::toDouble(), trimmed()
+*/
+
+double QString::toDouble(bool *ok, int *convertedChars) const
+{
+    return QLocaleData::c()->stringToDouble(*this, ok, convertedChars, QLocale::RejectGroupSeparator);
 }
 
 /*!
@@ -7433,6 +7707,42 @@ double QString::toDouble(bool *ok) const
 float QString::toFloat(bool *ok) const
 {
     return QLocaleData::convertDoubleToFloat(toDouble(ok), ok);
+}
+
+/*! \overload
+    \since 5.12
+
+    Returns the string converted to a \c float value.
+
+    Returns 0.0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.0.
+
+    This function skips leading whitespace and converts all valid numeric
+    characters, including plus/minus and the 'e' used in scientific notation,
+    stopping at the end of the string or the first non-numeric character.
+
+    The string conversion will always happen in the 'C' locale. For locale
+    dependent conversion use QLocale::toFloat()
+
+    For historical reasons, this function does not handle
+    thousands group separators. If you need to convert such numbers,
+    use QLocale::toDouble().
+
+    \sa number(), QLocale::setDefault(), QLocale::toDouble(), trimmed()
+*/
+
+float QString::toFloat(bool *ok, int *convertedChars) const
+{
+    return QLocaleData::convertDoubleToFloat(toDouble(ok, convertedChars), ok);
 }
 
 /*! \fn QString &QString::setNum(int n, int base)
@@ -11995,7 +12305,43 @@ ushort QStringRef::toUShort(bool *ok, int base) const
 
 double QStringRef::toDouble(bool *ok) const
 {
-    return QLocaleData::c()->stringToDouble(*this, ok, QLocale::RejectGroupSeparator);
+    return QLocaleData::c()->stringToDouble(*this, ok, nullptr, QLocale::RejectGroupSeparator);
+}
+
+/*! \overload
+    \since 5.12
+
+    Returns the string converted to a \c double value.
+
+    Returns 0.0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.0.
+
+    This function skips leading whitespace and converts all valid numeric
+    characters, including plus/minus and the 'e' used in scientific notation,
+    stopping at the end of the string or the first non-numeric character.
+
+    The string conversion will always happen in the 'C' locale. For locale
+    dependent conversion use QLocale::toDouble()
+
+    For historical reasons, this function does not handle
+    thousands group separators. If you need to convert such numbers,
+    use QLocale::toDouble().
+
+    \sa QString::toDouble()
+*/
+
+double QStringRef::toDouble(bool *ok, int *convertedChars) const
+{
+    return QLocaleData::c()->stringToDouble(*this, ok, convertedChars, QLocale::RejectGroupSeparator);
 }
 
 /*!
@@ -12017,6 +12363,42 @@ double QStringRef::toDouble(bool *ok) const
 float QStringRef::toFloat(bool *ok) const
 {
     return QLocaleData::convertDoubleToFloat(toDouble(ok), ok);
+}
+
+/*! \overload
+    \since 5.12
+
+    Returns the string converted to a \c double value.
+
+    Returns 0.0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.0.
+
+    This function skips leading whitespace and converts all valid numeric
+    characters, including plus/minus and the 'e' used in scientific notation,
+    stopping at the end of the string or the first non-numeric character.
+
+    The string conversion will always happen in the 'C' locale. For locale
+    dependent conversion use QLocale::toFloat()
+
+    For historical reasons, this function does not handle
+    thousands group separators. If you need to convert such numbers,
+    use QLocale::toFloat().
+
+    \sa QString::toFloat()
+*/
+
+float QStringRef::toFloat(bool *ok, int *convertedChars) const
+{
+    return QLocaleData::convertDoubleToFloat(toDouble(ok, convertedChars), ok);
 }
 
 /*!

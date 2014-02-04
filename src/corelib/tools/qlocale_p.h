@@ -254,17 +254,24 @@ public:
         return float(d);
     }
 
-    double stringToDouble(QStringView str, bool *ok, QLocale::NumberOptions options) const;
-    qint64 stringToLongLong(QStringView str, int base, bool *ok, QLocale::NumberOptions options) const;
-    quint64 stringToUnsLongLong(QStringView str, int base, bool *ok, QLocale::NumberOptions options) const;
+    double stringToDouble(QStringView str, bool *ok, int *convertedChars,
+                          QLocale::NumberOptions options) const;
+    qint64 stringToLongLong(QStringView str, int base, bool *ok, int *convertedChars,
+                            QLocale::NumberOptions options) const;
+    quint64 stringToUnsLongLong(QStringView str, int base, bool *ok, int *convertedChars,
+                                QLocale::NumberOptions options) const;
 
-    static double bytearrayToDouble(const char *num, bool *ok);
-    // this function is used in QIntValidator (QtGui)
-    Q_CORE_EXPORT static qint64 bytearrayToLongLong(const char *num, int base, bool *ok);
-    static quint64 bytearrayToUnsLongLong(const char *num, int base, bool *ok);
+    // these functions are used in QIntValidator (QtGui)
+    Q_CORE_EXPORT static double bytearrayToDouble(const char *num, bool *ok = nullptr,
+                                                  int *convertedChars = nullptr);
+    Q_CORE_EXPORT static qint64 bytearrayToLongLong(const char *num, int base, bool *o = nullptr,
+                                                    int *convertedChars = nullptr);
+    Q_CORE_EXPORT static quint64 bytearrayToUnsLongLong(const char *num, int base,
+                                                        bool *ok = nullptr, int *convertedChars = nullptr);
 
     bool numberToCLocale(QStringView s, QLocale::NumberOptions number_options,
-                         CharBuff *result) const;
+                         CharBuff *result, int *whitespaceSkipped) const;
+
     inline char digitToCLocale(QChar c) const;
 
     // this function is used in QIntValidator (QtGui)

@@ -1308,30 +1308,43 @@ void tst_QByteArray::toInt_data()
     QTest::addColumn<int>("base");
     QTest::addColumn<int>("expectednumber");
     QTest::addColumn<bool>("expectedok");
+    QTest::addColumn<int>("expectedendpos");
 
-    QTest::newRow("base 10") << QByteArray("100") << 10 << int(100) << true;
-    QTest::newRow("base 16-1") << QByteArray("100") << 16 << int(256) << true;
-    QTest::newRow("base 16-2") << QByteArray("0400") << 16 << int(1024) << true;
-    QTest::newRow("base 2") << QByteArray("1111") << 2 << int(15) << true;
-    QTest::newRow("base 8") << QByteArray("100") << 8 << int(64) << true;
-    QTest::newRow("base 0-1") << QByteArray("0x10") << 0 << int(16) << true;
-    QTest::newRow("base 0-2") << QByteArray("10") << 0 << int(10) << true;
-    QTest::newRow("base 0-3") << QByteArray("010") << 0 << int(8) << true;
-    QTest::newRow("empty") << QByteArray() << 0 << int(0) << false;
+    QTest::newRow("base 10") << QByteArray("100") << 10 << int(100) << true << 3;
+    QTest::newRow("base 16-1") << QByteArray("100") << 16 << int(256) << true << 3;
+    QTest::newRow("base 16-2") << QByteArray("0400") << 16 << int(1024) << true << 4;
+    QTest::newRow("base 2") << QByteArray("1111") << 2 << int(15) << true << 4;
+    QTest::newRow("base 8") << QByteArray("100") << 8 << int(64) << true << 3;
+    QTest::newRow("base 0-1") << QByteArray("0x10") << 0 << int(16) << true << 4;
+    QTest::newRow("base 0-2") << QByteArray("10") << 0 << int(10) << true << 2;
+    QTest::newRow("base 0-3") << QByteArray("010") << 0 << int(8) << true << 3;
+    QTest::newRow("empty") << QByteArray() << 0 << int(0) << false << 0;
 
-    QTest::newRow("leading space") << QByteArray(" 100") << 10 << int(100) << true;
-    QTest::newRow("trailing space") << QByteArray("100 ") << 10 << int(100) << true;
-    QTest::newRow("leading junk") << QByteArray("x100") << 10 << int(0) << false;
-    QTest::newRow("trailing junk") << QByteArray("100x") << 10 << int(0) << false;
+    QTest::newRow("leading space") << QByteArray("\t\r\n 100") << 10 << int(100) << true << 7;
+    QTest::newRow("trailing space") << QByteArray("100\r \n\t") << 10 << int(100) << true << 3;
+    QTest::newRow("surrounding space") << QByteArray(" \n\t\r100 \t\r\n") << 10 << int(100) << true << 7;
+    QTest::newRow("leading junk") << QByteArray("x100") << 10 << int(0) << false << 0;
+    QTest::newRow("trailing junk") << QByteArray("100x") << 10 << int(100) << false << 3;
+    QTest::newRow("trailing junk oct") << QByteArray("07778") << 0 << int(0777) << false << 4;
+    QTest::newRow("trailing junk hex") << QByteArray("0x10x") << 0 << int(0x10) << false << 4;
+    QTest::newRow("surrounding junk") << QByteArray("x100x") << 10 << int(0) << false << 0;
+
+    QTest::newRow("min-1") << QByteArray("-2147483649") << 10 << int(0) << false << 0;
+    QTest::newRow("min") << QByteArray("-2147483648") << 10 << int(2147483648) << true << 11;
+    QTest::newRow("max") << QByteArray("+2147483647") << 10 << int(2147483647) << true << 11;
+    QTest::newRow("max+1") << QByteArray("+2147483648") << 10 << int(0) << false << 0;
 
     // using fromRawData
-    QTest::newRow("raw1") << QByteArray::fromRawData("1", 1) << 10 << 1 << true;
-    QTest::newRow("raw2") << QByteArray::fromRawData("1foo", 1) << 10 << 1 << true;
-    QTest::newRow("raw3") << QByteArray::fromRawData("12", 1) << 10 << 1 << true;
-    QTest::newRow("raw4") << QByteArray::fromRawData("123456789", 1) << 10 << 1 << true;
-    QTest::newRow("raw5") << QByteArray::fromRawData("123456789", 2) << 10 << 12 << true;
+    QTest::newRow("raw1") << QByteArray::fromRawData("1", 1) << 10 << 1 << true << 1;
+    QTest::newRow("raw2") << QByteArray::fromRawData("1foo", 1) << 10 << 1 << true << 1;
+    QTest::newRow("raw3") << QByteArray::fromRawData("12", 1) << 10 << 1 << true << 1;
+    QTest::newRow("raw4") << QByteArray::fromRawData("123456789", 1) << 10 << 1 << true << 1;
+    QTest::newRow("raw5") << QByteArray::fromRawData("123456789", 2) << 10 << 12 << true << 2;
 
-    QTest::newRow("raw-static") << QByteArray::fromRawData(&globalChar, 1) << 10 << 1 << true;
+    QTest::newRow("raw-static") << QByteArray::fromRawData(&globalChar, 1) << 10 << 1 << true << 1;
+
+    // data with suffixes
+    QTest::newRow("suffix1") << QByteArray("1foo") << 10 << 1 << false << 1;
 }
 
 void tst_QByteArray::toInt()
@@ -1340,12 +1353,19 @@ void tst_QByteArray::toInt()
     QFETCH( int, base );
     QFETCH( int, expectednumber );
     QFETCH( bool, expectedok );
+    QFETCH( int, expectedendpos );
 
     bool ok;
     int number = string.toInt(&ok, base);
 
     QCOMPARE( ok, expectedok );
-    QCOMPARE( number, expectednumber );
+    QCOMPARE( number, expectednumber * int(ok) );
+
+    int convertedChars;
+    number = string.toInt(&ok, base, &convertedChars);
+    QCOMPARE(convertedChars, expectedendpos);
+    QCOMPARE(ok, convertedChars != 0);
+    QCOMPARE(number, expectednumber);
 }
 
 void tst_QByteArray::toDouble_data()
@@ -1353,14 +1373,15 @@ void tst_QByteArray::toDouble_data()
     QTest::addColumn<QByteArray>("string");
     QTest::addColumn<double>("expectedNumber");
     QTest::addColumn<bool>("expectedOk");
+    QTest::addColumn<int>("expectedEndpos");
 
-    QTest::newRow("decimal") << QByteArray("1.2345") << 1.2345 << true;
-    QTest::newRow("exponent lowercase") << QByteArray("1.2345e+01") << 12.345 << true;
-    QTest::newRow("exponent uppercase") << QByteArray("1.2345E+02") << 123.45 << true;
-    QTest::newRow("leading spaces") << QByteArray(" \n\r\t1.2345") << 1.2345 << true;
-    QTest::newRow("trailing spaces") << QByteArray("1.2345 \n\r\t") << 1.2345 << true;
-    QTest::newRow("leading junk") << QByteArray("x1.2345") << 0.0 << false;
-    QTest::newRow("trailing junk") << QByteArray("1.2345x") << 0.0 << false;
+    QTest::newRow("decimal") << QByteArray("1.2345") << 1.2345 << true << 6;
+    QTest::newRow("exponent lowercase") << QByteArray("1.2345e+01") << 12.345 << true << 10;
+    QTest::newRow("exponent uppercase") << QByteArray("1.2345E+02") << 123.45 << true << 10;
+    QTest::newRow("leading spaces") << QByteArray(" \n\r\t1.2345") << 1.2345 << true << 10;
+    QTest::newRow("trailing spaces") << QByteArray("1.2345 \n\r\t") << 1.2345 << true << 6;
+    QTest::newRow("leading junk") << QByteArray("x1.2345") << 0.0 << false << 0;
+    QTest::newRow("trailing junk") << QByteArray("1.2345x") << 1.2345 << false << 6;
 }
 
 void tst_QByteArray::toDouble()
@@ -1370,9 +1391,20 @@ void tst_QByteArray::toDouble()
     QFETCH(bool, expectedOk);
 
     bool ok;
-    const double number = string.toDouble(&ok);
+    double number = string.toDouble(&ok);
+    if (expectedOk) {
+        QVERIFY(ok);
+        QCOMPARE(number, expectedNumber);
+    } else {
+        QVERIFY(!ok);
+        QCOMPARE(number, 0.0);
+    }
 
-    QCOMPARE(ok, expectedOk);
+    QFETCH(int, expectedEndpos);
+    int convertedChars;
+    number = string.toDouble(&ok, &convertedChars);
+    QCOMPARE(convertedChars, expectedEndpos);
+    QCOMPARE(ok, convertedChars != 0);
     QCOMPARE(number, expectedNumber);
 }
 
@@ -1382,18 +1414,27 @@ void tst_QByteArray::toULong_data()
     QTest::addColumn<int>("base");
     QTest::addColumn<ulong>("result");
     QTest::addColumn<bool>("ok");
+    QTest::addColumn<int>("expectedendpos");
 
-    ulong LongMaxPlusOne = (ulong)LONG_MAX + 1;
-    QTest::newRow("LONG_MAX+1") << QString::number(LongMaxPlusOne).toLatin1() << 10 << LongMaxPlusOne << true;
-    QTest::newRow("default") << QByteArray() << 10 << 0UL << false;
-    QTest::newRow("empty") << QByteArray("") << 10 << 0UL << false;
-    QTest::newRow("ulong1") << QByteArray("3234567890") << 10 << 3234567890UL << true;
-    QTest::newRow("ulong2") << QByteArray("fFFfFfFf") << 16 << 0xFFFFFFFFUL << true;
+    ulong longMaxPlusOne = ulong(LONG_MAX) + 1;
+    QByteArray longMaxPlusOneStr = QString::number(longMaxPlusOne).toLatin1();
+    QTest::newRow("LONG_MAX+1") << longMaxPlusOneStr << 10 << longMaxPlusOne << true << longMaxPlusOneStr.length();
 
-    QTest::newRow("leading spaces") << QByteArray(" \n\r\t100") << 10 << 100UL << true;
-    QTest::newRow("trailing spaces") << QByteArray("100 \n\r\t") << 10 << 100UL << true;
-    QTest::newRow("leading junk") << QByteArray("x100") << 10 << 0UL << false;
-    QTest::newRow("trailing junk") << QByteArray("100x") << 10 << 0UL << false;
+    ulong ulongMax = ULONG_MAX;
+    QByteArray ulongMaxStr = QString::number(ulongMax).toLatin1();
+    QTest::newRow("min-1") << QByteArray("-1") << 10 << 0UL << false << 0;
+    QTest::newRow("min") << QByteArray("0") << 10 << 0UL << true << 1;
+    QTest::newRow("max") << ulongMaxStr << 10 << ulongMax << true << ulongMaxStr.length();
+
+    QTest::newRow("default") << QByteArray() << 10 << 0UL << false << 0;
+    QTest::newRow("empty") << QByteArray("") << 10 << 0UL << false << 0;
+    QTest::newRow("ulong1") << QByteArray("3234567890") << 10 << 3234567890UL << true << 10;
+    QTest::newRow("ulong2") << QByteArray("fFFfFfFf") << 16 << 0xFFFFFFFFUL << true << 8;
+
+    QTest::newRow("leading spaces") << QByteArray(" \n\r\t100") << 10 << 100UL << true << 7;
+    QTest::newRow("trailing spaces") << QByteArray("100 \n\r\t") << 10 << 100UL << true << 3;
+    QTest::newRow("leading junk") << QByteArray("x100") << 10 << 0UL << false << 0;
+    QTest::newRow("trailing junk") << QByteArray("100x") << 10 << 100UL << false << 3;
 }
 
 void tst_QByteArray::toULong()
@@ -1402,11 +1443,17 @@ void tst_QByteArray::toULong()
     QFETCH(int, base);
     QFETCH(ulong, result);
     QFETCH(bool, ok);
+    QFETCH(int, expectedendpos);
 
     bool b;
-    QCOMPARE(str.toULong(0, base), result);
-    QCOMPARE(str.toULong(&b, base), result);
+    QCOMPARE(str.toULong(0, base), result * ulong(ok));
+    QCOMPARE(str.toULong(&b, base), result * ulong(ok));
     QCOMPARE(b, ok);
+
+    int convertedChars;
+    QCOMPARE(str.toULong(&b, base, &convertedChars), result);
+    QCOMPARE(convertedChars, expectedendpos);
+    QCOMPARE(b, convertedChars != 0);
 }
 
 void tst_QByteArray::toULongLong_data()
@@ -1415,14 +1462,27 @@ void tst_QByteArray::toULongLong_data()
     QTest::addColumn<int>("base");
     QTest::addColumn<qulonglong>("result");
     QTest::addColumn<bool>("ok");
+    QTest::addColumn<int>("expectedendpos");
 
-    QTest::newRow("default") << QByteArray() << 10 << (qulonglong)0 << false;
-    QTest::newRow("out of base bound") << QByteArray("c") << 10 << (qulonglong)0 << false;
+    QTest::newRow("default") << QByteArray() << 10 << (qulonglong)0 << false << 0;
+    QTest::newRow("out of base bound") << QByteArray("c") << 10 << (qulonglong)0 << false << 0;
 
-    QTest::newRow("leading spaces") << QByteArray(" \n\r\t100") << 10 << qulonglong(100) << true;
-    QTest::newRow("trailing spaces") << QByteArray("100 \n\r\t") << 10 << qulonglong(100) << true;
-    QTest::newRow("leading junk") << QByteArray("x100") << 10 << qulonglong(0) << false;
-    QTest::newRow("trailing junk") << QByteArray("100x") << 10 << qulonglong(0) << false;
+    QTest::newRow("leading spaces") << QByteArray(" \n\r\t100") << 10 << qulonglong(100) << true << 7;
+    QTest::newRow("trailing spaces") << QByteArray("100 \n\r\t") << 10 << qulonglong(100) << true << 3;
+    QTest::newRow("surrounding spaces") << QByteArray("\n \t\r100 \n\r\t") << 10 << qulonglong(100) << true << 7;
+    QTest::newRow("leading junk") << QByteArray("x100") << 10 << qulonglong(0) << false << 0;
+    QTest::newRow("trailing junk") << QByteArray("100x") << 10 << qulonglong(100) << false << 3;
+    QTest::newRow("surrounding junk") << QByteArray("x100x") << 10 << qulonglong(0) << false << 0;
+
+    qulonglong longlongMaxPlusOne = qulonglong(std::numeric_limits<qlonglong>::max()) + 1;
+    QByteArray longlongMaxPlusOneStr = QString::number(longlongMaxPlusOne).toLatin1();
+    QTest::newRow("LLONG_MAX+1") << longlongMaxPlusOneStr << 10 << longlongMaxPlusOne << true << longlongMaxPlusOneStr.length();
+    QTest::newRow("default") << QByteArray() << 10 << Q_UINT64_C(0) << false << 0;
+    QTest::newRow("empty") << QByteArray("") << 10 << Q_UINT64_C(0) << false << 0;
+    QTest::newRow("min-1") << QByteArray("-1") << 10 << Q_UINT64_C(0) << false << 0;
+    QTest::newRow("min") << QByteArray("0") << 10 << Q_UINT64_C(0) << true << 1;
+    QTest::newRow("ulong1") << QByteArray("3234567890") << 10 << Q_UINT64_C(3234567890) << true << 10;
+    QTest::newRow("ulong2") << QByteArray("fFFfFfFf") << 16 << Q_UINT64_C(0xFFFFFFFF) << true << 8;
 }
 
 void tst_QByteArray::toULongLong()
@@ -1431,11 +1491,17 @@ void tst_QByteArray::toULongLong()
     QFETCH(int, base);
     QFETCH(qulonglong, result);
     QFETCH(bool, ok);
+    QFETCH(int, expectedendpos);
 
     bool b;
-    QCOMPARE(str.toULongLong(0, base), result);
-    QCOMPARE(str.toULongLong(&b, base), result);
+    QCOMPARE(str.toULongLong(0, base), result * qulonglong(ok));
+    QCOMPARE(str.toULongLong(&b, base), result * qulonglong(ok));
     QCOMPARE(b, ok);
+
+    int convertedChars;
+    QCOMPARE(str.toULongLong(&b, base, &convertedChars), result);
+    QCOMPARE(convertedChars, expectedendpos);
+    QCOMPARE(b, convertedChars != 0);
 }
 
 static bool checkSize(size_t value, size_t min)

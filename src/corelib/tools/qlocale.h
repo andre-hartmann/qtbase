@@ -899,7 +899,8 @@ public:
         OmitLeadingZeroInExponent = 0x04,
         RejectLeadingZeroInExponent = 0x08,
         IncludeTrailingZeroesAfterDot = 0x10,
-        RejectTrailingZeroesAfterDot = 0x20
+        RejectTrailingZeroesAfterDot = 0x20,
+        StopAtNonNumeric = 0x40
     };
     Q_DECLARE_FLAGS(NumberOptions, NumberOption)
 

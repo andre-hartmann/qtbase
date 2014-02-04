@@ -3872,18 +3872,18 @@ QByteArray QByteArray::rightJustified(int width, char fill, bool truncate) const
 
 bool QByteArray::isNull() const { return d == QArrayData::sharedNull(); }
 
-static qlonglong toIntegral_helper(const char *data, bool *ok, int base, qlonglong)
+static qlonglong toIntegral_helper(const char *data, bool *ok, int base, int *convertedChars, qlonglong)
 {
-    return QLocaleData::bytearrayToLongLong(data, base, ok);
+    return QLocaleData::bytearrayToLongLong(data, base, ok, convertedChars);
 }
 
-static qulonglong toIntegral_helper(const char *data, bool *ok, int base, qulonglong)
+static qulonglong toIntegral_helper(const char *data, bool *ok, int base, int *convertedChars, qulonglong)
 {
-    return QLocaleData::bytearrayToUnsLongLong(data, base, ok);
+    return QLocaleData::bytearrayToUnsLongLong(data, base, ok, convertedChars);
 }
 
 template <typename T> static inline
-T toIntegral_helper(const char *data, bool *ok, int base)
+T toIntegral_helper(const char *data, bool *ok, int *convertedChars, int base)
 {
     // ### Qt6: use std::conditional<std::is_unsigned<T>::value, qulonglong, qlonglong>::type
     const bool isUnsigned = T(0) < T(-1);
@@ -3897,9 +3897,11 @@ T toIntegral_helper(const char *data, bool *ok, int base)
 #endif
 
     // we select the right overload by the last, unused parameter
-    Int64 val = toIntegral_helper(data, ok, base, Int64());
+    Int64 val = toIntegral_helper(data, ok, base, convertedChars, Int64());
     if (T(val) != val) {
-        if (ok)
+        if (convertedChars != nullptr)
+            *convertedChars = 0;
+        if (ok != nullptr)
             *ok = false;
         val = 0;
     }
@@ -3928,7 +3930,41 @@ T toIntegral_helper(const char *data, bool *ok, int base)
 
 qlonglong QByteArray::toLongLong(bool *ok, int base) const
 {
-    return toIntegral_helper<qlonglong>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<qlonglong>(nulTerminated().constData(), ok, nullptr, base);
+}
+
+/*! \overload
+    \since 5.12
+
+    Returns the byte array converted to a \c {long long} using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number()
+*/
+
+qlonglong QByteArray::toLongLong(bool *ok, int base, int *convertedChars) const
+{
+    return toIntegral_helper<qlonglong>(nulTerminated().constData(), ok, convertedChars, base);
 }
 
 /*!
@@ -3954,7 +3990,42 @@ qlonglong QByteArray::toLongLong(bool *ok, int base) const
 
 qulonglong QByteArray::toULongLong(bool *ok, int base) const
 {
-    return toIntegral_helper<qulonglong>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<qulonglong>(nulTerminated().constData(), ok, nullptr, base);
+}
+
+/*! \overload
+    \since 5.12
+
+    Returns the byte array converted to a \c {unsigned long long}
+    using base \a base, which is 10 by default and must be between 2
+    and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number()
+*/
+
+qulonglong QByteArray::toULongLong(bool *ok, int base, int *convertedChars) const
+{
+    return toIntegral_helper<qulonglong>(nulTerminated().constData(), ok, convertedChars, base);
 }
 
 /*!
@@ -3981,7 +4052,41 @@ qulonglong QByteArray::toULongLong(bool *ok, int base) const
 
 int QByteArray::toInt(bool *ok, int base) const
 {
-    return toIntegral_helper<int>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<int>(nulTerminated().constData(), ok, nullptr, base);
+}
+
+/*! \overload
+    \since 5.12
+
+    Returns the byte array converted to an \c int using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number()
+*/
+
+int QByteArray::toInt(bool *ok, int base, int *convertedChars) const
+{
+    return toIntegral_helper<int>(nulTerminated().constData(), ok, convertedChars, base);
 }
 
 /*!
@@ -4006,7 +4111,41 @@ int QByteArray::toInt(bool *ok, int base) const
 
 uint QByteArray::toUInt(bool *ok, int base) const
 {
-    return toIntegral_helper<uint>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<uint>(nulTerminated().constData(), ok, nullptr, base);
+}
+
+/*! \overload
+    \since 5.12
+
+    Returns the byte array converted to an \c {unsigned int} using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number()
+*/
+
+uint QByteArray::toUInt(bool *ok, int base, int *convertedChars) const
+{
+    return toIntegral_helper<uint>(nulTerminated().constData(), ok, convertedChars, base);
 }
 
 /*!
@@ -4034,7 +4173,40 @@ uint QByteArray::toUInt(bool *ok, int base) const
 */
 long QByteArray::toLong(bool *ok, int base) const
 {
-    return toIntegral_helper<long>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<long>(nulTerminated().constData(), ok, nullptr, base);
+}
+/*! \overload
+    \since 5.12
+
+    Returns the byte array converted to a \c {long} using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number()
+*/
+
+long QByteArray::toLong(bool *ok, int base, int *convertedChars) const
+{
+    return toIntegral_helper<long>(nulTerminated().constData(), ok, convertedChars, base);
 }
 
 /*!
@@ -4060,7 +4232,41 @@ long QByteArray::toLong(bool *ok, int base) const
 */
 ulong QByteArray::toULong(bool *ok, int base) const
 {
-    return toIntegral_helper<ulong>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<ulong>(nulTerminated().constData(), ok, nullptr, base);
+}
+
+/*! \overload
+    \since 5.12
+
+    Returns the byte array converted to an \c {unsigned long} using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number()
+*/
+
+ulong QByteArray::toULong(bool *ok, int base, int *convertedChars) const
+{
+    return toIntegral_helper<ulong>(nulTerminated().constData(), ok, convertedChars, base);
 }
 
 /*!
@@ -4085,7 +4291,41 @@ ulong QByteArray::toULong(bool *ok, int base) const
 
 short QByteArray::toShort(bool *ok, int base) const
 {
-    return toIntegral_helper<short>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<short>(nulTerminated().constData(), ok, nullptr, base);
+}
+
+/*! \overload
+    \since 5.12
+
+    Returns the byte array converted to a \c short using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number()
+*/
+
+short QByteArray::toShort(bool *ok, int base, int *convertedChars) const
+{
+    return toIntegral_helper<short>(nulTerminated().constData(), ok, convertedChars, base);
 }
 
 /*!
@@ -4110,9 +4350,42 @@ short QByteArray::toShort(bool *ok, int base) const
 
 ushort QByteArray::toUShort(bool *ok, int base) const
 {
-    return toIntegral_helper<ushort>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<ushort>(nulTerminated().constData(), ok, nullptr, base);
 }
 
+/*! \overload
+    \since 5.12
+
+    Returns the byte array converted to an \c {unsigned short} using base \a
+    base, which is 10 by default and must be between 2 and 36, or 0.
+
+    If \a base is 0, the base is determined automatically using the
+    following rules: If the byte array begins with "0x", it is assumed to
+    be hexadecimal; if it begins with "0", it is assumed to be octal;
+    otherwise it is assumed to be decimal.
+
+    Returns 0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number()
+*/
+
+ushort QByteArray::toUShort(bool *ok, int base, int *convertedChars) const
+{
+    return toIntegral_helper<ushort>(nulTerminated().constData(), ok, convertedChars, base);
+}
 
 /*!
     Returns the byte array converted to a \c double value.
@@ -4139,14 +4412,41 @@ ushort QByteArray::toUShort(bool *ok, int base) const
 
 double QByteArray::toDouble(bool *ok) const
 {
-    QByteArray nulled = nulTerminated();
-    bool nonNullOk = false;
-    int processed = 0;
-    double d = asciiToDouble(nulled.constData(), nulled.length(),
-                             nonNullOk, processed, WhitespacesAllowed);
-    if (ok)
-        *ok = nonNullOk;
-    return d;
+    return toDouble(ok, nullptr);
+}
+
+/*! \overload
+    \since 5.12
+
+    Returns the byte array converted to a \c double value.
+
+    Returns 0.0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input bytes, \a *ok will be set to \c false and this function will return 0.0.
+
+    \snippet code/src_corelib_tools_qbytearray.cpp 38endptr
+
+    This function skips leading whitespace and converts all valid numeric
+    characters, including plus/minus and the 'e' used in scientific notation,
+    stopping at the end of the string or the first non-numeric character.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number()
+*/
+
+double QByteArray::toDouble(bool *ok, int *convertedChars) const
+{
+    return QLocaleData::bytearrayToDouble(nulTerminated().constData(), ok, convertedChars);
 }
 
 /*!
@@ -4175,6 +4475,40 @@ double QByteArray::toDouble(bool *ok) const
 float QByteArray::toFloat(bool *ok) const
 {
     return QLocaleData::convertDoubleToFloat(toDouble(ok), ok);
+}
+
+/*! \overload
+    \since 5.12
+
+    Returns the byte array converted to a \c float value.
+
+    Returns 0.0 if the conversion fails.
+
+    If \a ok is not \c nullptr, failure is reported by setting *\a{ok}
+    to \c false, and success by setting *\a{ok} to \c true.
+
+    If \a convertedChars is not \c nullptr, it will contain the number of
+    converted characters on return. To verify that the entire string was consumed,
+    check if \c {*convertedChars == size()}.
+
+    If \a convertedChars is nullptr and the conversion could not convert all
+    input chars, \a *ok will be set to \c false and this function will return 0.0.
+
+    \snippet code/src_corelib_tools_qbytearray.cpp 38floatendptr
+
+    This function skips leading whitespace and converts all valid numeric
+    characters, including plus/minus and the 'e' used in scientific notation,
+    stopping at the end of the string or the first non-numeric character.
+
+    \note The conversion of the number is performed in the default C locale,
+    irrespective of the user's locale.
+
+    \sa number()
+*/
+
+float QByteArray::toFloat(bool *ok, int *convertedChars) const
+{
+    return QLocaleData::convertDoubleToFloat(toDouble(ok, convertedChars), ok);
 }
 
 /*!

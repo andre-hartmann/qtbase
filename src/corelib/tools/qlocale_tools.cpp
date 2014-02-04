@@ -315,12 +315,11 @@ double asciiToDouble(const char *num, int numLen, bool &ok, int &processed,
 
     double d = 0.0;
 #if !defined(QT_NO_DOUBLECONVERSION) && !defined(QT_BOOTSTRAPPED)
-    int conv_flags = double_conversion::StringToDoubleConverter::NO_FLAGS;
+    int conv_flags = double_conversion::StringToDoubleConverter::ALLOW_LEADING_SPACES;
     if (strayCharMode == TrailingJunkAllowed) {
-        conv_flags = double_conversion::StringToDoubleConverter::ALLOW_TRAILING_JUNK;
+        conv_flags |= double_conversion::StringToDoubleConverter::ALLOW_TRAILING_JUNK;
     } else if (strayCharMode == WhitespacesAllowed) {
-        conv_flags = double_conversion::StringToDoubleConverter::ALLOW_LEADING_SPACES
-                | double_conversion::StringToDoubleConverter::ALLOW_TRAILING_SPACES;
+        conv_flags |= double_conversion::StringToDoubleConverter::ALLOW_TRAILING_SPACES;
     }
     double_conversion::StringToDoubleConverter conv(conv_flags, 0.0, qt_snan(), 0, 0);
     d = conv.StringToDouble(num, numLen, &processed);

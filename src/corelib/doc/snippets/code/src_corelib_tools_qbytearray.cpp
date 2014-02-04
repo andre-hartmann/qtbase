@@ -360,6 +360,13 @@ string = "1234.56 Volt";
 a = str.toDouble(&ok);             // a == 0, ok == false
 //! [38]
 
+//! [38endptr]
+QByteArray string("1234.56 Volt");
+bool ok;
+int endpos;
+double a = string.toDouble(&ok, &endpos);   // a == 1234.56, ok == true, endpos == 7
+//! [38endptr]
+
 //! [38float]
 QByteArray string("1234.56");
 bool ok;
@@ -368,6 +375,13 @@ double a = string.toFloat(&ok);    // a == 1234.56, ok == true
 string = "1234.56 Volt";
 a = str.toFloat(&ok);              // a == 0, ok == false
 //! [38float]
+
+//! [38floatendptr]
+QByteArray string("1234.56 Volt");
+bool ok;
+int endpos;
+float a = string.toFloat(&ok, &endpos);   // a == 1234.56, ok == true, endpos == 7
+//! [38floatendptr]
 
 //! [39]
 QByteArray text("Qt is great!");
