@@ -7128,7 +7128,7 @@ qint64 QString::toLongLong(bool *ok, int base) const
     return toIntegral_helper<qlonglong>(constData(), size(), ok, base);
 }
 
-qlonglong QString::toIntegral_helper(const QChar *data, int len, bool *ok, int base)
+qlonglong QString::toIntegral_helper(const QChar *data, int len, bool *ok, int base, int *endpos)
 {
 #if defined(QT_CHECK_RANGE)
     if (base != 0 && (base < 2 || base > 36)) {
@@ -7137,7 +7137,7 @@ qlonglong QString::toIntegral_helper(const QChar *data, int len, bool *ok, int b
     }
 #endif
 
-    return QLocaleData::c()->stringToLongLong(QStringView(data, len), base, ok, QLocale::RejectGroupSeparator);
+    return QLocaleData::c()->stringToLongLong(QStringView(data, len), base, ok, endpos, QLocale::RejectGroupSeparator);
 }
 
 
@@ -7170,7 +7170,7 @@ quint64 QString::toULongLong(bool *ok, int base) const
     return toIntegral_helper<qulonglong>(constData(), size(), ok, base);
 }
 
-qulonglong QString::toIntegral_helper(const QChar *data, uint len, bool *ok, int base)
+qulonglong QString::toIntegral_helper(const QChar *data, uint len, bool *ok, int base, int *endpos)
 {
 #if defined(QT_CHECK_RANGE)
     if (base != 0 && (base < 2 || base > 36)) {
@@ -7179,8 +7179,7 @@ qulonglong QString::toIntegral_helper(const QChar *data, uint len, bool *ok, int
     }
 #endif
 
-    return QLocaleData::c()->stringToUnsLongLong(QStringView(data, len), base, ok,
-                                                 QLocale::RejectGroupSeparator);
+    return QLocaleData::c()->stringToUnsLongLong(QStringView(data, len), base, ok, endpos, QLocale::RejectGroupSeparator);
 }
 
 /*!
@@ -7398,7 +7397,12 @@ ushort QString::toUShort(bool *ok, int base) const
 
 double QString::toDouble(bool *ok) const
 {
-    return QLocaleData::c()->stringToDouble(*this, ok, QLocale::RejectGroupSeparator);
+    return toDouble(ok, nullptr);
+}
+
+double QString::toDouble(bool *ok, int *endpos) const
+{
+    return QLocaleData::c()->stringToDouble(*this, ok, endpos, QLocale::RejectGroupSeparator);
 }
 
 /*!
@@ -7433,6 +7437,11 @@ double QString::toDouble(bool *ok) const
 float QString::toFloat(bool *ok) const
 {
     return QLocaleData::convertDoubleToFloat(toDouble(ok), ok);
+}
+
+float QString::toFloat(bool *ok, int *endpos) const
+{
+    return QLocaleData::convertDoubleToFloat(toDouble(ok, endpos), ok);
 }
 
 /*! \fn QString &QString::setNum(int n, int base)
@@ -11995,7 +12004,12 @@ ushort QStringRef::toUShort(bool *ok, int base) const
 
 double QStringRef::toDouble(bool *ok) const
 {
-    return QLocaleData::c()->stringToDouble(*this, ok, QLocale::RejectGroupSeparator);
+    return QLocaleData::c()->stringToDouble(*this, ok, nullptr, QLocale::RejectGroupSeparator);
+}
+
+double QStringRef::toDouble(bool *ok, int *endpos) const
+{
+    return QLocaleData::c()->stringToDouble(*this, ok, endpos, QLocale::RejectGroupSeparator);
 }
 
 /*!
@@ -12017,6 +12031,11 @@ double QStringRef::toDouble(bool *ok) const
 float QStringRef::toFloat(bool *ok) const
 {
     return QLocaleData::convertDoubleToFloat(toDouble(ok), ok);
+}
+
+float QStringRef::toFloat(bool *ok, int *endpos) const
+{
+    return QLocaleData::convertDoubleToFloat(toDouble(ok, endpos), ok);
 }
 
 /*!

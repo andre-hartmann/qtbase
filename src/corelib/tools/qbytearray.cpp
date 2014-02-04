@@ -3872,18 +3872,18 @@ QByteArray QByteArray::rightJustified(int width, char fill, bool truncate) const
 
 bool QByteArray::isNull() const { return d == QArrayData::sharedNull(); }
 
-static qlonglong toIntegral_helper(const char *data, bool *ok, int base, qlonglong)
+static qlonglong toIntegral_helper(const char *data, bool *ok, int base, int *endpos, qlonglong)
 {
-    return QLocaleData::bytearrayToLongLong(data, base, ok);
+    return QLocaleData::bytearrayToLongLong(data, base, ok, endpos);
 }
 
-static qulonglong toIntegral_helper(const char *data, bool *ok, int base, qulonglong)
+static qulonglong toIntegral_helper(const char *data, bool *ok, int base, int *endpos, qulonglong)
 {
-    return QLocaleData::bytearrayToUnsLongLong(data, base, ok);
+    return QLocaleData::bytearrayToUnsLongLong(data, base, ok, endpos);
 }
 
 template <typename T> static inline
-T toIntegral_helper(const char *data, bool *ok, int base)
+T toIntegral_helper(const char *data, bool *ok, int *endpos, int base)
 {
     // ### Qt6: use std::conditional<std::is_unsigned<T>::value, qulonglong, qlonglong>::type
     const bool isUnsigned = T(0) < T(-1);
@@ -3897,7 +3897,7 @@ T toIntegral_helper(const char *data, bool *ok, int base)
 #endif
 
     // we select the right overload by the last, unused parameter
-    Int64 val = toIntegral_helper(data, ok, base, Int64());
+    Int64 val = toIntegral_helper(data, ok, base, endpos, Int64());
     if (T(val) != val) {
         if (ok)
             *ok = false;
@@ -3928,7 +3928,12 @@ T toIntegral_helper(const char *data, bool *ok, int base)
 
 qlonglong QByteArray::toLongLong(bool *ok, int base) const
 {
-    return toIntegral_helper<qlonglong>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<qlonglong>(nulTerminated().constData(), ok, nullptr, base);
+}
+
+qlonglong QByteArray::toLongLong(bool *ok, int base, int *endpos) const
+{
+    return toIntegral_helper<qlonglong>(nulTerminated().constData(), ok, endpos, base);
 }
 
 /*!
@@ -3954,7 +3959,12 @@ qlonglong QByteArray::toLongLong(bool *ok, int base) const
 
 qulonglong QByteArray::toULongLong(bool *ok, int base) const
 {
-    return toIntegral_helper<qulonglong>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<qulonglong>(nulTerminated().constData(), ok, nullptr, base);
+}
+
+qulonglong QByteArray::toULongLong(bool *ok, int base, int *endpos) const
+{
+    return toIntegral_helper<qulonglong>(nulTerminated().constData(), ok, endpos, base);
 }
 
 /*!
@@ -3981,7 +3991,12 @@ qulonglong QByteArray::toULongLong(bool *ok, int base) const
 
 int QByteArray::toInt(bool *ok, int base) const
 {
-    return toIntegral_helper<int>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<int>(nulTerminated().constData(), ok, nullptr, base);
+}
+
+int QByteArray::toInt(bool *ok, int base, int *endpos) const
+{
+    return toIntegral_helper<int>(nulTerminated().constData(), ok, endpos, base);
 }
 
 /*!
@@ -4006,7 +4021,12 @@ int QByteArray::toInt(bool *ok, int base) const
 
 uint QByteArray::toUInt(bool *ok, int base) const
 {
-    return toIntegral_helper<uint>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<uint>(nulTerminated().constData(), ok, nullptr, base);
+}
+
+uint QByteArray::toUInt(bool *ok, int base, int *endpos) const
+{
+    return toIntegral_helper<uint>(nulTerminated().constData(), ok, endpos, base);
 }
 
 /*!
@@ -4034,7 +4054,12 @@ uint QByteArray::toUInt(bool *ok, int base) const
 */
 long QByteArray::toLong(bool *ok, int base) const
 {
-    return toIntegral_helper<long>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<long>(nulTerminated().constData(), ok, nullptr, base);
+}
+
+long QByteArray::toLong(bool *ok, int base, int *endpos) const
+{
+    return toIntegral_helper<long>(nulTerminated().constData(), ok, endpos, base);
 }
 
 /*!
@@ -4060,7 +4085,12 @@ long QByteArray::toLong(bool *ok, int base) const
 */
 ulong QByteArray::toULong(bool *ok, int base) const
 {
-    return toIntegral_helper<ulong>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<ulong>(nulTerminated().constData(), ok, nullptr, base);
+}
+
+ulong QByteArray::toULong(bool *ok, int base, int *endpos) const
+{
+    return toIntegral_helper<ulong>(nulTerminated().constData(), ok, endpos, base);
 }
 
 /*!
@@ -4085,7 +4115,12 @@ ulong QByteArray::toULong(bool *ok, int base) const
 
 short QByteArray::toShort(bool *ok, int base) const
 {
-    return toIntegral_helper<short>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<short>(nulTerminated().constData(), ok, nullptr, base);
+}
+
+short QByteArray::toShort(bool *ok, int base, int *endpos) const
+{
+    return toIntegral_helper<short>(nulTerminated().constData(), ok, endpos, base);
 }
 
 /*!
@@ -4110,9 +4145,13 @@ short QByteArray::toShort(bool *ok, int base) const
 
 ushort QByteArray::toUShort(bool *ok, int base) const
 {
-    return toIntegral_helper<ushort>(nulTerminated().constData(), ok, base);
+    return toIntegral_helper<ushort>(nulTerminated().constData(), ok, nullptr, base);
 }
 
+ushort QByteArray::toUShort(bool *ok, int base, int *endpos) const
+{
+    return toIntegral_helper<ushort>(nulTerminated().constData(), ok, endpos, base);
+}
 
 /*!
     Returns the byte array converted to a \c double value.
@@ -4149,6 +4188,11 @@ double QByteArray::toDouble(bool *ok) const
     return d;
 }
 
+double QByteArray::toDouble(bool *ok, int *endpos) const
+{
+    return QLocaleData::bytearrayToDouble(nulTerminated().constData(), ok, endpos);
+}
+
 /*!
     Returns the byte array converted to a \c float value.
 
@@ -4175,6 +4219,11 @@ double QByteArray::toDouble(bool *ok) const
 float QByteArray::toFloat(bool *ok) const
 {
     return QLocaleData::convertDoubleToFloat(toDouble(ok), ok);
+}
+
+float QByteArray::toFloat(bool *ok, int *endpos) const
+{
+    return QLocaleData::convertDoubleToFloat(toDouble(ok, endpos), ok);
 }
 
 /*!

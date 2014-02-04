@@ -347,6 +347,7 @@ public:
     inline QT_ASCII_CAST_WARN bool operator>=(const QString &s2) const;
 #endif
 
+    // ### Qt6: merge the two sets
     short toShort(bool *ok = nullptr, int base = 10) const;
     ushort toUShort(bool *ok = nullptr, int base = 10) const;
     int toInt(bool *ok = nullptr, int base = 10) const;
@@ -357,6 +358,18 @@ public:
     qulonglong toULongLong(bool *ok = nullptr, int base = 10) const;
     float toFloat(bool *ok = nullptr) const;
     double toDouble(bool *ok = nullptr) const;
+
+    short toShort(bool *ok, int base, int *endpos) const;
+    ushort toUShort(bool *ok, int base, int *endpos) const;
+    int toInt(bool *ok, int base, int *endpos) const;
+    uint toUInt(bool *ok, int base, int *endpos) const;
+    long toLong(bool *ok, int base, int *endpos) const;
+    ulong toULong(bool *ok, int base, int *endpos) const;
+    qlonglong toLongLong(bool *ok, int base, int *endpos) const;
+    qulonglong toULongLong(bool *ok, int base, int *endpos) const;
+    float toFloat(bool *ok, int *endpos) const;
+    double toDouble(bool *ok, int *endpos) const;
+
     QByteArray toBase64(Base64Options options) const;
     QByteArray toBase64() const; // ### Qt6 merge with previous
     QByteArray toHex() const;
